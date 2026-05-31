@@ -36,16 +36,23 @@ struct SceneViewport: NSViewRepresentable {
         if view.scene !== state.scene {
             view.scene = state.scene
             coordinator.measurementPoints.removeAll()
+            coordinator.appliedCameraName = nil
             if let scene = state.scene,
                let camera = scene.rootNode.childNode(withName: SceneHelpers.autoCameraName, recursively: true) {
                 view.pointOfView = camera
+                coordinator.appliedCameraName = SceneHelpers.autoCameraName
             }
         }
 
+        // Only switch cameras when the selection actually changes. Re-asserting
+        // pointOfView on every update would clobber the user's orbit/pan/zoom
+        // (camera control swaps in its own pointOfView) whenever any unrelated
+        // option is toggled. Explicit reselects / Reset go through applyCamera.
         if let name = state.selectedCameraName,
-           let node = state.scene?.rootNode.childNode(withName: name, recursively: true),
-           view.pointOfView !== node {
+           name != coordinator.appliedCameraName,
+           let node = state.scene?.rootNode.childNode(withName: name, recursively: true) {
             view.pointOfView = node
+            coordinator.appliedCameraName = name
         }
 
         view.debugOptions = state.debugOptions
@@ -72,6 +79,9 @@ final class SceneViewportCoordinator: NSObject {
     weak var scnView: SCNView?
     var state: ViewerState
     var measurementPoints: [SCNVector3] = []
+    /// The camera name currently applied to the view's pointOfView. Tracks
+    /// deliberate switches so updateNSView won't re-apply (and reset) the view.
+    var appliedCameraName: String?
     private var playbackTimer: Timer?
 
     init(state: ViewerState) {
@@ -105,6 +115,7 @@ final class SceneViewportCoordinator: NSObject {
         guard let view = scnView,
               let node = view.scene?.rootNode.childNode(withName: name, recursively: true) else { return }
         view.pointOfView = node
+        appliedCameraName = name
     }
 
     // MARK: - Measurement
