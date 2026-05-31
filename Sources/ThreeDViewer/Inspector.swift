@@ -72,6 +72,7 @@ struct InspectorView: View {
 
     private var overlaysSection: some View {
         Section("Overlays") {
+            Toggle("Show Backfaces", isOn: $state.showBackfaces)
             Toggle("Bounding Box", isOn: $state.showBoundingBox)
             Toggle("Wireframe Overlay", isOn: $state.showWireframeOverlay)
             Toggle("Axes Gizmo", isOn: $state.showAxes)
