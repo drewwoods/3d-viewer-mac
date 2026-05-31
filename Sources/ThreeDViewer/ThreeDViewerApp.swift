@@ -11,6 +11,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppDelegate.shared = self
     }
 
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // `swift run` produces a bare executable, not a .app bundle, so macOS
+        // launches us as an accessory process: no Dock icon, no Cmd-Tab entry,
+        // and the window opens without coming to the front. Promote to a
+        // regular app and pull ourselves forward.
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let url = urls.first else { return }
         if let handler = onOpen {
