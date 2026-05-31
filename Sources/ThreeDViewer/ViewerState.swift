@@ -67,6 +67,7 @@ final class ViewerState: ObservableObject {
     @Published var showWireframeOverlay = false { didSet { refreshDebugOptions() } }
     @Published var showAxes = false { didSet { applyAxes() } }
     @Published var showNormals = false { didSet { applyNormals() } }
+    @Published var showBackfaces = true { didSet { applyCulling() } }
 
     @Published var debugOptions: SCNDebugOptions = []
     @Published var backgroundContents: Any?
@@ -150,6 +151,7 @@ final class ViewerState: ObservableObject {
         applyDisplayMode()
         applyAxes()
         applyNormals()
+        applyCulling()
         refreshDebugOptions()
 
         cameraNames = SceneHelpers.cameraNames(in: loaded)
@@ -289,6 +291,19 @@ final class ViewerState: ObservableObject {
     private func applyNormals() {
         guard let scene else { return }
         SceneHelpers.setNormals(showNormals, in: scene, modelNodes: modelNodes, radius: modelBoundingRadius)
+    }
+
+    /// When `showBackfaces` is on, render both sides of every face (cullMode is
+    /// effectively disabled); otherwise fall back to SceneKit's default back-face
+    /// culling. Viewer-added helper nodes (prefixed) are left untouched.
+    private func applyCulling() {
+        for node in modelNodes {
+            node.enumerateHierarchy { n, _ in
+                guard let geometry = n.geometry,
+                      !(n.name?.hasPrefix(SceneHelpers.prefix) ?? false) else { return }
+                geometry.materials.forEach { $0.isDoubleSided = showBackfaces }
+            }
+        }
     }
 
     // MARK: - Camera
