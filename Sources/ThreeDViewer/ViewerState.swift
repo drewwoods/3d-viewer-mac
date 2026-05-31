@@ -16,8 +16,12 @@ enum DisplayMode: String, CaseIterable, Identifiable {
 
 enum LightingPreset: String, CaseIterable, Identifiable {
     case studio = "Studio"
+    case threePoint = "Three-Point"
     case outdoor = "Outdoor"
+    case topDown = "Top-Down"
     case singleKey = "Single Key"
+    case dramatic = "Dramatic"
+    case flat = "Flat"
     case environment = "Environment"
     var id: String { rawValue }
 }
@@ -68,6 +72,7 @@ final class ViewerState: ObservableObject {
     @Published var showAxes = false { didSet { applyAxes() } }
     @Published var showNormals = false { didSet { applyNormals() } }
     @Published var showBackfaces = true { didSet { applyCulling() } }
+    @Published var showLights = false { didSet { applyLightMarkers() } }
 
     @Published var debugOptions: SCNDebugOptions = []
     @Published var backgroundContents: Any?
@@ -152,6 +157,7 @@ final class ViewerState: ObservableObject {
         applyAxes()
         applyNormals()
         applyCulling()
+        applyLightMarkers()
         refreshDebugOptions()
 
         cameraNames = SceneHelpers.cameraNames(in: loaded)
@@ -253,6 +259,13 @@ final class ViewerState: ObservableObject {
         } else if let url = environmentURL, let img = NSImage(contentsOf: url) {
             scene.lightingEnvironment.contents = img
         }
+        // Light positions change with the preset, so refresh any visible markers.
+        applyLightMarkers()
+    }
+
+    private func applyLightMarkers() {
+        guard let scene else { return }
+        SceneHelpers.setLightMarkers(showLights, in: scene, radius: modelBoundingRadius)
     }
 
     private func applyBackground() {

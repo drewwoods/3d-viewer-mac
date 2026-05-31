@@ -197,19 +197,66 @@ enum SceneHelpers {
             rig.addChildNode(directional(350, .white, from: SCNVector3(-d, d * 0.2, d * 0.6)))
             rig.addChildNode(directional(500, .white, from: SCNVector3(0, d * 0.4, -d)))
             rig.addChildNode(ambient(250, .white))
+        case .threePoint:
+            // Key (front-right), fill (front-left, soft), rim (behind for edge light).
+            rig.addChildNode(directional(1000, .white, from: SCNVector3(d, d * 0.6, d * 0.8)))
+            rig.addChildNode(directional(300, .white, from: SCNVector3(-d * 0.9, d * 0.3, d * 0.7)))
+            rig.addChildNode(directional(850, .white, from: SCNVector3(-d * 0.2, d * 0.5, -d)))
+            rig.addChildNode(ambient(120, .white))
         case .outdoor:
             rig.addChildNode(directional(1100,
                 NSColor(calibratedRed: 1.0, green: 0.96, blue: 0.88, alpha: 1),
                 from: SCNVector3(d * 0.5, d, d * 0.4)))
             rig.addChildNode(ambient(600,
                 NSColor(calibratedRed: 0.72, green: 0.80, blue: 1.0, alpha: 1)))
+        case .topDown:
+            // Slight z offset so look(at:) doesn't degenerate when pointing straight down.
+            rig.addChildNode(directional(1000, .white, from: SCNVector3(0, d, d * 0.05)))
+            rig.addChildNode(ambient(300, .white))
         case .singleKey:
             rig.addChildNode(directional(1000, .white, from: SCNVector3(d * 0.6, d * 0.7, d)))
             rig.addChildNode(ambient(120, .white))
+        case .dramatic:
+            // One hard low side key, minimal ambient -> deep shadows, high contrast.
+            rig.addChildNode(directional(1300, .white, from: SCNVector3(d, d * 0.15, d * 0.3)))
+            rig.addChildNode(ambient(30, .white))
+        case .flat:
+            // High ambient plus a soft front fill -> near shadowless, good for detail.
+            rig.addChildNode(directional(250, .white, from: SCNVector3(0, d * 0.3, d)))
+            rig.addChildNode(ambient(700, .white))
         case .environment:
             rig.addChildNode(ambient(80, .white))
         }
         scene.rootNode.addChildNode(rig)
+    }
+
+    // MARK: - Light markers
+
+    /// Places a small constant-shaded sphere at each non-ambient light's
+    /// position, tinted to the light's color, so the user can see where the
+    /// lights sit. Reads positions from the current light rig; call after
+    /// `applyLighting` so the rig exists.
+    static func setLightMarkers(_ show: Bool, in scene: SCNScene, radius: CGFloat) {
+        scene.rootNode.childNode(withName: prefix + "lightmarkers", recursively: false)?.removeFromParentNode()
+        guard show,
+              let rig = scene.rootNode.childNode(withName: prefix + "lights", recursively: false) else { return }
+        let container = SCNNode()
+        container.name = prefix + "lightmarkers"
+        let markerRadius = max(radius * 0.04, 0.0005)
+        for lightNode in rig.childNodes {
+            guard let light = lightNode.light, light.type != .ambient else { continue }
+            let sphere = SCNSphere(radius: markerRadius)
+            let color = (light.color as? NSColor) ?? .white
+            let material = SCNMaterial()
+            material.diffuse.contents = color
+            material.emission.contents = color
+            material.lightingModel = .constant
+            sphere.materials = [material]
+            let marker = SCNNode(geometry: sphere)
+            marker.position = lightNode.position
+            container.addChildNode(marker)
+        }
+        scene.rootNode.addChildNode(container)
     }
 
     // MARK: - Axes

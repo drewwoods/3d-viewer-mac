@@ -65,6 +65,7 @@ struct InspectorView: View {
             if let url = state.environmentURL {
                 LabeledContent("Environment", value: url.lastPathComponent)
             }
+            Toggle("Show Light Positions", isOn: $state.showLights)
         }
     }
 
