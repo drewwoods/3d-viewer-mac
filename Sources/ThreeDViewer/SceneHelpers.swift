@@ -170,6 +170,11 @@ enum SceneHelpers {
         rig.name = prefix + "lights"
         let d = max(radius, 0.001) * 4
 
+        // Subtle color temperatures so multi-light rigs read as slightly warm
+        // key / neutral fill / cool rim rather than flat white.
+        let warm = NSColor(calibratedRed: 1.0, green: 0.91, blue: 0.79, alpha: 1)
+        let cool = NSColor(calibratedRed: 0.80, green: 0.87, blue: 1.0, alpha: 1)
+
         func directional(_ intensity: CGFloat, _ color: NSColor, from: SCNVector3) -> SCNNode {
             let light = SCNLight()
             light.type = .directional
@@ -193,15 +198,16 @@ enum SceneHelpers {
 
         switch preset {
         case .studio:
-            rig.addChildNode(directional(900, .white, from: SCNVector3(d * 0.7, d * 0.8, d)))
+            // Warm key, neutral fill, cool back light.
+            rig.addChildNode(directional(900, warm, from: SCNVector3(d * 0.7, d * 0.8, d)))
             rig.addChildNode(directional(350, .white, from: SCNVector3(-d, d * 0.2, d * 0.6)))
-            rig.addChildNode(directional(500, .white, from: SCNVector3(0, d * 0.4, -d)))
+            rig.addChildNode(directional(500, cool, from: SCNVector3(0, d * 0.4, -d)))
             rig.addChildNode(ambient(250, .white))
         case .threePoint:
-            // Key (front-right), fill (front-left, soft), rim (behind for edge light).
-            rig.addChildNode(directional(1000, .white, from: SCNVector3(d, d * 0.6, d * 0.8)))
+            // Warm key (front-right), neutral fill (front-left), cool rim (behind).
+            rig.addChildNode(directional(1000, warm, from: SCNVector3(d, d * 0.6, d * 0.8)))
             rig.addChildNode(directional(300, .white, from: SCNVector3(-d * 0.9, d * 0.3, d * 0.7)))
-            rig.addChildNode(directional(850, .white, from: SCNVector3(-d * 0.2, d * 0.5, -d)))
+            rig.addChildNode(directional(850, cool, from: SCNVector3(-d * 0.2, d * 0.5, -d)))
             rig.addChildNode(ambient(120, .white))
         case .outdoor:
             rig.addChildNode(directional(1100,
