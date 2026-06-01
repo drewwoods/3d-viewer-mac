@@ -83,6 +83,9 @@ struct InspectorView: View {
 
     private var materialSection: some View {
         Section("Material") {
+            Picker("Lighting Model", selection: $state.lightingModelOption) {
+                ForEach(LightingModelOption.allCases) { Text($0.rawValue).tag($0) }
+            }
             LabeledContent("Specular") {
                 Slider(value: $state.specularIntensity, in: 0...1)
             }
@@ -95,7 +98,7 @@ struct InspectorView: View {
             LabeledContent("Roughness") {
                 Slider(value: $state.roughness, in: 0...1)
             }
-            Text("Specular/Shininess affect Blinn-Phong materials; Metalness/Roughness affect physically based ones.")
+            Text("Specular/Shininess affect Blinn/Phong materials; Metalness/Roughness affect Physically Based ones. Set the Lighting Model to choose which apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

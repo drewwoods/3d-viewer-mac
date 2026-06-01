@@ -28,6 +28,26 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum LightingModelOption: String, CaseIterable, Identifiable {
+    case asLoaded = "As Loaded"
+    case physicallyBased = "Physically Based"
+    case blinn = "Blinn"
+    case phong = "Phong"
+    case constant = "Constant"
+    var id: String { rawValue }
+
+    /// The SceneKit lighting model to apply, or nil to leave the file's own.
+    var scnModel: SCNMaterial.LightingModel? {
+        switch self {
+        case .asLoaded: return nil
+        case .physicallyBased: return .physicallyBased
+        case .blinn: return .blinn
+        case .phong: return .phong
+        case .constant: return .constant
+        }
+    }
+}
+
 enum BackgroundStyle: String, CaseIterable, Identifiable {
     case dark = "Dark"
     case light = "Light"
@@ -82,10 +102,15 @@ final class ViewerState: ObservableObject {
     // Blinn/Phong materials use specular + shininess; physically based materials
     // use metalness + roughness. We set all four; SceneKit ignores the ones that
     // don't apply to a given lighting model.
+    @Published var lightingModelOption: LightingModelOption = .asLoaded { didSet { applyMaterialOverrides() } }
     @Published var specularIntensity: Double = 0.5 { didSet { applyMaterialOverrides() } }
     @Published var shininess: Double = 0.25 { didSet { applyMaterialOverrides() } }
     @Published var metalness: Double = 0.0 { didSet { applyMaterialOverrides() } }
     @Published var roughness: Double = 0.5 { didSet { applyMaterialOverrides() } }
+
+    /// The lighting model each loaded material had on import, keyed by material,
+    /// so the "As Loaded" option can restore it.
+    private var originalLightingModels: [ObjectIdentifier: SCNMaterial.LightingModel] = [:]
 
     /// Global color-management preference. When true, SceneKit's linear-space
     /// workflow is disabled so colors are lit/displayed in gamma space, matching
@@ -171,6 +196,10 @@ final class ViewerState: ObservableObject {
         fileName = url.lastPathComponent
         fileURL = url
 
+        // Record originals so "As Loaded" can restore them, but don't apply the
+        // slider overrides here — leave the file's authored materials intact
+        // until the user actually changes a material control.
+        captureOriginalLightingModels()
         applyLighting()
         applyBackground()
         applyDisplayMode()
@@ -385,9 +414,12 @@ final class ViewerState: ObservableObject {
 
     // MARK: - Materials
 
-    /// Applies the material-property sliders to every loaded mesh material,
-    /// skipping viewer-added helper nodes. `shininess` maps to a usable Phong
-    /// exponent; specular/metalness/roughness map straight through (0...1).
+    /// Applies the lighting-model override and property sliders to every loaded
+    /// mesh material, skipping viewer-added helper nodes. `shininess` maps to a
+    /// usable Phong exponent; specular/metalness/roughness map straight through
+    /// (0...1). Specular/shininess only take effect on Blinn/Phong materials;
+    /// metalness/roughness only on physically based ones — so use the Lighting
+    /// Model picker to choose which set is live.
     private func applyMaterialOverrides() {
         let specular = NSColor(calibratedWhite: specularIntensity, alpha: 1)
         let phongShininess = shininess * 50.0   // 0...50, a sensible highlight range
@@ -396,10 +428,31 @@ final class ViewerState: ObservableObject {
                 guard let geometry = n.geometry,
                       !(n.name?.hasPrefix(SceneHelpers.prefix) ?? false) else { return }
                 for material in geometry.materials {
+                    // Lighting model: override, or restore the file's original.
+                    if let forced = lightingModelOption.scnModel {
+                        material.lightingModel = forced
+                    } else if let original = originalLightingModels[ObjectIdentifier(material)] {
+                        material.lightingModel = original
+                    }
                     material.specular.contents = specular
                     material.shininess = CGFloat(phongShininess)
                     material.metalness.contents = metalness
                     material.roughness.contents = roughness
+                }
+            }
+        }
+    }
+
+    /// Records each material's lighting model at load time so "As Loaded" can
+    /// restore it after the user has forced a different model.
+    private func captureOriginalLightingModels() {
+        originalLightingModels.removeAll()
+        for node in modelNodes {
+            node.enumerateHierarchy { n, _ in
+                guard let geometry = n.geometry,
+                      !(n.name?.hasPrefix(SceneHelpers.prefix) ?? false) else { return }
+                for material in geometry.materials {
+                    originalLightingModels[ObjectIdentifier(material)] = material.lightingModel
                 }
             }
         }
