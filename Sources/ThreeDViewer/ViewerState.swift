@@ -414,6 +414,25 @@ final class ViewerState: ObservableObject {
 
     // MARK: - Materials
 
+    /// The lighting model the sliders will actually affect: the picker's choice,
+    /// or — for "As Loaded" — the model the loaded materials were imported with
+    /// (first captured material; nil if nothing loaded yet).
+    var effectiveLightingModel: SCNMaterial.LightingModel? {
+        if let forced = lightingModelOption.scnModel { return forced }
+        return originalLightingModels.values.first
+    }
+
+    /// Whether specular/shininess apply under the effective lighting model.
+    var specularControlsActive: Bool {
+        let m = effectiveLightingModel
+        return m == .blinn || m == .phong
+    }
+
+    /// Whether metalness/roughness apply under the effective lighting model.
+    var pbrControlsActive: Bool {
+        effectiveLightingModel == .physicallyBased
+    }
+
     /// Applies the lighting-model override and property sliders to every loaded
     /// mesh material, skipping viewer-added helper nodes. `shininess` maps to a
     /// usable Phong exponent; specular/metalness/roughness map straight through

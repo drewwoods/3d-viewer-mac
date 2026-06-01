@@ -89,15 +89,19 @@ struct InspectorView: View {
             LabeledContent("Specular") {
                 Slider(value: $state.specularIntensity, in: 0...1)
             }
+            .disabled(!state.specularControlsActive)
             LabeledContent("Shininess") {
                 Slider(value: $state.shininess, in: 0...1)
             }
+            .disabled(!state.specularControlsActive)
             LabeledContent("Metalness") {
                 Slider(value: $state.metalness, in: 0...1)
             }
+            .disabled(!state.pbrControlsActive)
             LabeledContent("Roughness") {
                 Slider(value: $state.roughness, in: 0...1)
             }
+            .disabled(!state.pbrControlsActive)
             Text("Specular/Shininess affect Blinn/Phong materials; Metalness/Roughness affect Physically Based ones. Set the Lighting Model to choose which apply.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
