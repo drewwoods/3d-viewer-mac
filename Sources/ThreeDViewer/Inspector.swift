@@ -3,6 +3,9 @@ import SceneKit
 
 struct InspectorView: View {
     @EnvironmentObject private var state: ViewerState
+    @State private var showRestartAlert = false
+    @State private var pendingLinearChange = false
+    @State private var isRevertingLinear = false
 
     var body: some View {
         Form {
@@ -49,6 +52,28 @@ struct InspectorView: View {
             Picker("Background", selection: $state.backgroundStyle) {
                 ForEach(BackgroundStyle.allCases) { Text($0.rawValue).tag($0) }
             }
+            Toggle("Legacy (non-sRGB) Colors", isOn: $state.disableLinearRendering)
+                .onChange(of: state.disableLinearRendering) { newValue in
+                    // Ignore the programmatic revert performed on Cancel.
+                    guard !isRevertingLinear else { isRevertingLinear = false; return }
+                    pendingLinearChange = newValue
+                    showRestartAlert = true
+                }
+            Text("Disables linear color management to match legacy OpenGL renderers. Requires a restart.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .alert("Restart required", isPresented: $showRestartAlert) {
+            Button("Restart Now") {
+                state.setDisableLinearRendering(pendingLinearChange)
+            }
+            Button("Cancel", role: .cancel) {
+                // Revert the toggle without restarting (suppresses the re-fire).
+                isRevertingLinear = true
+                state.disableLinearRendering = !pendingLinearChange
+            }
+        } message: {
+            Text("Changing color management restarts the app so the framebuffer is recreated.")
         }
     }
 

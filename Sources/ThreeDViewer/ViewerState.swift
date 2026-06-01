@@ -74,6 +74,13 @@ final class ViewerState: ObservableObject {
     @Published var showBackfaces = true { didSet { applyCulling() } }
     @Published var showLights = false { didSet { applyLightMarkers() } }
 
+    /// Global color-management preference. When true, SceneKit's linear-space
+    /// workflow is disabled so colors are lit/displayed in gamma space, matching
+    /// legacy non-sRGB OpenGL renderers. SceneKit reads this key once at init,
+    /// so a change only takes effect after the app restarts.
+    static let disableLinearKey = "SCNDisableLinearSpaceRendering"
+    @Published var disableLinearRendering = UserDefaults.standard.bool(forKey: ViewerState.disableLinearKey)
+
     @Published var debugOptions: SCNDebugOptions = []
     @Published var backgroundContents: Any?
 
@@ -317,6 +324,34 @@ final class ViewerState: ObservableObject {
                 geometry.materials.forEach { $0.isDoubleSided = showBackfaces }
             }
         }
+    }
+
+    // MARK: - Color management
+
+    /// Persists the requested linear/gamma setting and relaunches the app, since
+    /// SceneKit only reads `SCNDisableLinearSpaceRendering` at startup. Returns
+    /// without relaunching if the value already matches what's stored.
+    func setDisableLinearRendering(_ disabled: Bool) {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: Self.disableLinearKey) != disabled else { return }
+        defaults.set(disabled, forKey: Self.disableLinearKey)
+        defaults.synchronize()
+        relaunchApp()
+    }
+
+    private func relaunchApp() {
+        let url = URL(fileURLWithPath: Bundle.main.executablePath ?? CommandLine.arguments[0])
+        let task = Process()
+        // Re-exec the same binary (works for both a bundled .app and `swift run`).
+        if Bundle.main.bundleURL.pathExtension == "app" {
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            task.arguments = ["-n", Bundle.main.bundleURL.path]
+        } else {
+            task.executableURL = url
+            task.arguments = Array(CommandLine.arguments.dropFirst())
+        }
+        try? task.run()
+        NSApp.terminate(nil)
     }
 
     // MARK: - Camera
