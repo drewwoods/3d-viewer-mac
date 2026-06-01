@@ -18,6 +18,7 @@ struct InspectorView: View {
             } else {
                 fileSection
                 displaySection
+                materialSection
                 lightingSection
                 overlaysSection
                 if state.cameraNames.count > 1 {
@@ -74,6 +75,28 @@ struct InspectorView: View {
             }
         } message: {
             Text("Changing color management restarts the app so the framebuffer is recreated.")
+        }
+    }
+
+    // MARK: - Material
+
+    private var materialSection: some View {
+        Section("Material") {
+            LabeledContent("Specular") {
+                Slider(value: $state.specularIntensity, in: 0...1)
+            }
+            LabeledContent("Shininess") {
+                Slider(value: $state.shininess, in: 0...1)
+            }
+            LabeledContent("Metalness") {
+                Slider(value: $state.metalness, in: 0...1)
+            }
+            LabeledContent("Roughness") {
+                Slider(value: $state.roughness, in: 0...1)
+            }
+            Text("Specular/Shininess affect Blinn-Phong materials; Metalness/Roughness affect physically based ones.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 

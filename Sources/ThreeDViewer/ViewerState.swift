@@ -74,6 +74,16 @@ final class ViewerState: ObservableObject {
     @Published var showBackfaces = true { didSet { applyCulling() } }
     @Published var showLights = false { didSet { applyLightMarkers() } }
 
+    // Material overrides. Applied to the loaded model's materials only when the
+    // user changes a slider, so file-authored materials are kept until touched.
+    // Blinn/Phong materials use specular + shininess; physically based materials
+    // use metalness + roughness. We set all four; SceneKit ignores the ones that
+    // don't apply to a given lighting model.
+    @Published var specularIntensity: Double = 0.5 { didSet { applyMaterialOverrides() } }
+    @Published var shininess: Double = 0.25 { didSet { applyMaterialOverrides() } }
+    @Published var metalness: Double = 0.0 { didSet { applyMaterialOverrides() } }
+    @Published var roughness: Double = 0.5 { didSet { applyMaterialOverrides() } }
+
     /// Global color-management preference. When true, SceneKit's linear-space
     /// workflow is disabled so colors are lit/displayed in gamma space, matching
     /// legacy non-sRGB OpenGL renderers. SceneKit reads this key once at init,
@@ -352,6 +362,28 @@ final class ViewerState: ObservableObject {
         }
         try? task.run()
         NSApp.terminate(nil)
+    }
+
+    // MARK: - Materials
+
+    /// Applies the material-property sliders to every loaded mesh material,
+    /// skipping viewer-added helper nodes. `shininess` maps to a usable Phong
+    /// exponent; specular/metalness/roughness map straight through (0...1).
+    private func applyMaterialOverrides() {
+        let specular = NSColor(calibratedWhite: specularIntensity, alpha: 1)
+        let phongShininess = shininess * 50.0   // 0...50, a sensible highlight range
+        for node in modelNodes {
+            node.enumerateHierarchy { n, _ in
+                guard let geometry = n.geometry,
+                      !(n.name?.hasPrefix(SceneHelpers.prefix) ?? false) else { return }
+                for material in geometry.materials {
+                    material.specular.contents = specular
+                    material.shininess = CGFloat(phongShininess)
+                    material.metalness.contents = metalness
+                    material.roughness.contents = roughness
+                }
+            }
+        }
     }
 
     // MARK: - Camera
