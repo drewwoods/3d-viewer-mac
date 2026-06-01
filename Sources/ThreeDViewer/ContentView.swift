@@ -24,7 +24,7 @@ struct ContentView: View {
 
     private var detailView: some View {
         ZStack {
-            Color(nsColor: NSColor(calibratedWhite: 0.09, alpha: 1))
+            state.backdropColor
                 .ignoresSafeArea()
 
             if state.scene != nil {

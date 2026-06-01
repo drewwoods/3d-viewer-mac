@@ -289,7 +289,8 @@ final class ViewerState: ObservableObject {
     }
 
     private func applyBackground() {
-        guard let scene else { return }
+        // Compute the background even when no scene is loaded, so the empty-state
+        // backdrop (see `backdropColor`) tracks the selected theme too.
         switch backgroundStyle {
         case .dark:
             backgroundContents = NSColor(calibratedWhite: 0.09, alpha: 1)
@@ -304,7 +305,17 @@ final class ViewerState: ObservableObject {
                 backgroundContents = NSColor(calibratedWhite: 0.09, alpha: 1)
             }
         }
-        scene.background.contents = backgroundContents
+        scene?.background.contents = backgroundContents
+    }
+
+    /// Solid backdrop color for the detail view behind the viewport / drop
+    /// prompt. Mirrors the theme; image-based backgrounds (checkerboard,
+    /// environment) fall back to a neutral dark so the prompt stays legible.
+    var backdropColor: Color {
+        switch backgroundStyle {
+        case .light: return Color(white: 0.93)
+        default: return Color(white: 0.09)
+        }
     }
 
     private func refreshDebugOptions() {
