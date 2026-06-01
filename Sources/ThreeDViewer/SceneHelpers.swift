@@ -230,6 +230,23 @@ enum SceneHelpers {
             // High ambient plus a soft front fill -> near shadowless, good for detail.
             rig.addChildNode(directional(250, .white, from: SCNVector3(0, d * 0.3, d)))
             rig.addChildNode(ambient(700, .white))
+        case .sunset:
+            // Low warm/orange key with a dim purple-blue fill from the opposite side.
+            rig.addChildNode(directional(1100,
+                NSColor(calibratedRed: 1.0, green: 0.55, blue: 0.28, alpha: 1),
+                from: SCNVector3(d, d * 0.18, d * 0.5)))
+            rig.addChildNode(directional(300,
+                NSColor(calibratedRed: 0.45, green: 0.40, blue: 0.75, alpha: 1),
+                from: SCNVector3(-d * 0.8, d * 0.4, -d * 0.4)))
+            rig.addChildNode(ambient(160,
+                NSColor(calibratedRed: 0.55, green: 0.45, blue: 0.55, alpha: 1)))
+        case .moonlight:
+            // Cool dim key from above with low blue ambient.
+            rig.addChildNode(directional(450,
+                NSColor(calibratedRed: 0.62, green: 0.74, blue: 1.0, alpha: 1),
+                from: SCNVector3(d * 0.3, d, d * 0.5)))
+            rig.addChildNode(ambient(90,
+                NSColor(calibratedRed: 0.40, green: 0.50, blue: 0.78, alpha: 1)))
         case .environment:
             rig.addChildNode(ambient(80, .white))
         }

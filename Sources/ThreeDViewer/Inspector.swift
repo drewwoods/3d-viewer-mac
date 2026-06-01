@@ -53,6 +53,7 @@ struct InspectorView: View {
             Picker("Background", selection: $state.backgroundStyle) {
                 ForEach(BackgroundStyle.allCases) { Text($0.rawValue).tag($0) }
             }
+            Toggle("Auto-Rotate", isOn: $state.autoRotate)
             Toggle("Legacy (non-sRGB) Colors", isOn: $state.disableLinearRendering)
                 .onChange(of: state.disableLinearRendering) { newValue in
                     // Ignore the programmatic revert performed on Cancel.

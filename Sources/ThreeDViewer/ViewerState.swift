@@ -22,6 +22,8 @@ enum LightingPreset: String, CaseIterable, Identifiable {
     case singleKey = "Single Key"
     case dramatic = "Dramatic"
     case flat = "Flat"
+    case sunset = "Sunset"
+    case moonlight = "Moonlight"
     case environment = "Environment"
     var id: String { rawValue }
 }
@@ -73,6 +75,7 @@ final class ViewerState: ObservableObject {
     @Published var showNormals = false { didSet { applyNormals() } }
     @Published var showBackfaces = true { didSet { applyCulling() } }
     @Published var showLights = false { didSet { applyLightMarkers() } }
+    @Published var autoRotate = false
 
     // Material overrides. Applied to the loaded model's materials only when the
     // user changes a slider, so file-authored materials are kept until touched.

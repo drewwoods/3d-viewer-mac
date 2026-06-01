@@ -71,6 +71,7 @@ struct SceneViewport: NSViewRepresentable {
         }
 
         coordinator.ensurePlaybackTimer()
+        coordinator.syncAutoRotate()
     }
 }
 
@@ -83,6 +84,7 @@ final class SceneViewportCoordinator: NSObject {
     /// deliberate switches so updateNSView won't re-apply (and reset) the view.
     var appliedCameraName: String?
     private var playbackTimer: Timer?
+    private var rotationTimer: Timer?
 
     init(state: ViewerState) {
         self.state = state
@@ -107,6 +109,39 @@ final class SceneViewportCoordinator: NSObject {
         if abs(time - state.sceneTime) > 0.001 {
             state.sceneTime = time
         }
+    }
+
+    // MARK: - Auto-rotate
+
+    /// Starts/stops a turntable orbit of the current camera around the model
+    /// center, matching `state.autoRotate`. Orbits incrementally from wherever
+    /// the view currently is, so it composes with the user's manual framing.
+    func syncAutoRotate() {
+        if state.autoRotate {
+            guard rotationTimer == nil else { return }
+            rotationTimer = Timer.scheduledTimer(timeInterval: 1.0 / 60.0,
+                                                 target: self,
+                                                 selector: #selector(rotationTick),
+                                                 userInfo: nil,
+                                                 repeats: true)
+        } else {
+            rotationTimer?.invalidate()
+            rotationTimer = nil
+        }
+    }
+
+    @objc private func rotationTick() {
+        guard state.autoRotate, let view = scnView, let camera = view.pointOfView else { return }
+        let center = state.modelCenter
+        let dTheta: CGFloat = 0.005          // ~0.3°/tick -> ~18°/s at 60fps
+        let dx = camera.position.x - center.x
+        let dz = camera.position.z - center.z
+        camera.position = SCNVector3(
+            center.x + dx * cos(dTheta) - dz * sin(dTheta),
+            camera.position.y,
+            center.z + dx * sin(dTheta) + dz * cos(dTheta)
+        )
+        camera.look(at: center)
     }
 
     // MARK: - Camera
